@@ -23,11 +23,11 @@ test('Complete a purchase', async ({ page }) => {
 
   // Checkout form
   await page.getByRole('combobox', {name: 'Country'}).selectOption({label: 'United States of America (the)'});
-  await page.getByLabel('Postal code').fill('60999');
+  await page.getByLabel('Postal code').fill('60601');
   await page.getByLabel('House number').fill('476');
   await page.getByLabel('Street').fill('Main St Test');
   await page.getByLabel('City').fill('Chicago');
-  await page.getByLabel('State').fill('Ilinois');
+  await page.getByLabel('State').fill('Illinois');
   await page.getByRole('button', {name: 'Proceed to checkout'}).click();
   await expect(page.getByRole('heading', {name: 'Payment'})).toBeVisible();
 
