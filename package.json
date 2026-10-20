@@ -1,5 +1,5 @@
 {
-  "name": "pst_playwright_ts",
+  "name": "toolshop-playwright-ts",
   "version": "1.0.0",
   "description": "Playwright + TypeScript practice tests for practicesoftwaretesting.com",
   "main": "index.js",

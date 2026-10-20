@@ -1,4 +1,4 @@
-# PST Playwright TS
+# Toolshop Playwright TS
 
 End-to-end tests written with [Playwright](https://playwright.dev) and TypeScript for [Practice Software Testing](https://practicesoftwaretesting.com), a demo web shop built for testing practice.
 
