@@ -1,19 +1,19 @@
 import { test, expect } from '@playwright/test';
-import { HomePage } from '../src/pages/HomePage';
-import { ProductPage } from '../src/pages/ProductPage';
+import { Header, HomePage, ProductPage } from '../src/pages';
 
 test('Add a product to the cart', async ({ page }) => {
-  const productPage = new ProductPage(page);
+  const productName = 'Bolt Cutters';
   const homePage = new HomePage(page);
+  const productPage = new ProductPage(page);
+  const header = new Header(page);
 
   await homePage.goto();
-
-  await homePage.openProduct('Bolt Cutters');
-  await expect(
-    page.getByRole('heading', { name: 'Bolt Cutters' })).toBeVisible();
+  await homePage.openProduct(productName);
+  await expect(page.getByRole('heading', { name: productName })).toBeVisible();
   await productPage.addToCart();
+  // The toast is a role="alert"; toContainText ignores the rest of its text.
   await expect(page.getByRole('alert')).toContainText(
     'Product added to shopping cart',
   );
-  await expect(page.getByRole('link', { name: 'cart' })).toHaveText('1');
+  await expect(header.cartLink()).toHaveText('1');
 });

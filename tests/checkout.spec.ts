@@ -1,43 +1,73 @@
 import { test, expect } from '@playwright/test';
+import { customer } from '../src/data/users';
+import {
+  CheckoutPage,
+  Header,
+  HomePage,
+  LoginPage,
+  ProductPage,
+} from '../src/pages';
 
 test('Complete a purchase', async ({ page }) => {
-  await page.goto('/auth/login')
+  const productName = 'Bolt Cutters';
+  const loginPage = new LoginPage(page);
+  const homePage = new HomePage(page);
+  const productPage = new ProductPage(page);
+  const header = new Header(page);
+  const checkoutPage = new CheckoutPage(page);
 
-  await page.getByLabel('Email address *').fill('customer2@practicesoftwaretesting.com');
-  await page.getByLabel('Password *').fill('welcome01');
-  await page.getByRole('button', {name: 'Login'}).click();
-  await expect(page.getByRole('heading', {name: 'My account'})).toBeVisible();
+  // Log in first: the login form inside the checkout has the same labels as
+  // the one in the header, so `getByLabel` would match two elements there.
+  await test.step('Log in', async () => {
+    await loginPage.goto();
+    await loginPage.login(customer.email, customer.password);
+    await expect(
+      page.getByRole('heading', { name: 'My account' }),
+    ).toBeVisible();
+  });
 
-  await page.goto('/')
+  await test.step('Add a product to the cart', async () => {
+    await homePage.goto();
+    await homePage.openProduct(productName);
+    await productPage.addToCart();
+    await expect(page.getByRole('alert')).toContainText(
+      'Product added to shopping cart',
+    );
+    await expect(header.cartLink()).toHaveText('1');
+  });
 
-  await page.getByRole('heading', {name: 'Bolt Cutters'}).click();
-  await expect(page.getByRole('heading', {name: 'Bolt Cutters'})).toBeVisible();
-  await page.getByRole('button', {name: 'Add to cart'}).click();
-  await expect(page.getByRole('alert')).toContainText('Product added to shopping cart');
-  await expect(page.getByRole('link', { name: 'cart' })).toHaveText('1');
+  await test.step('Go to the checkout', async () => {
+    await header.openCart();
+    await checkoutPage.proceedToCheckout();
+    await expect(page.getByText('You can proceed to checkout.')).toBeVisible();
+    await checkoutPage.proceedToCheckout();
+  });
 
-  await page.getByRole('link', { name: 'cart' }).click();
-  await page.getByRole('button', {name: 'Proceed to checkout'}).click();
-  await expect(page.getByText('You can proceed to checkout.')).toBeVisible();
-  await page.getByRole('button', {name: 'Proceed to checkout'}).click();
+  await test.step('Fill the billing address', async () => {
+    // US + 60601 on purpose: the API rejects (422) a postal code whose
+    // format does not match the country.
+    await checkoutPage.fillBillingAddress({
+      country: 'United States of America (the)',
+      postalCode: '60601',
+      houseNumber: '476',
+      street: 'Main St Test',
+      city: 'Chicago',
+      state: 'Illinois',
+    });
+    await checkoutPage.proceedToCheckout();
+    await expect(page.getByRole('heading', { name: 'Payment' })).toBeVisible();
+  });
 
-  // Checkout form
-  await page.getByRole('combobox', {name: 'Country'}).selectOption({label: 'United States of America (the)'});
-  await page.getByLabel('Postal code').fill('60601');
-  await page.getByLabel('House number').fill('476');
-  await page.getByLabel('Street').fill('Main St Test');
-  await page.getByLabel('City').fill('Chicago');
-  await page.getByLabel('State').fill('Illinois');
-  await page.getByRole('button', {name: 'Proceed to checkout'}).click();
-  await expect(page.getByRole('heading', {name: 'Payment'})).toBeVisible();
-
-  // Payment
-  await page.getByRole('combobox', {name: 'Payment Method'}).selectOption({label: 'Bank Transfer'});
-  await page.getByLabel('Bank Name').fill('Bank of America');
-  await page.getByLabel('Account Name').fill('Test User');
-  await page.getByLabel('Account Number').fill('998877112');
-  await page.getByRole('button', {name: 'Check payment'}).click();
-  await expect(page.locator('[data-test="payment-success-message"]')).toBeVisible();
-  await page.getByRole('button', {name: 'Confirm'}).click();
-  await expect(page.getByText('Thanks for your order!')).toBeVisible();
+  await test.step('Pay and confirm the order', async () => {
+    await checkoutPage.payWithBankTransfer({
+      bankName: 'Bank of America',
+      accountName: 'Test User',
+      accountNumber: '998877112',
+    });
+    await expect(
+      page.locator('[data-test="payment-success-message"]'),
+    ).toBeVisible();
+    await checkoutPage.confirm();
+    await expect(page.getByText('Thanks for your order!')).toBeVisible();
+  });
 });
